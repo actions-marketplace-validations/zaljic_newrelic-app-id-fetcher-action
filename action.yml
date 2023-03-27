@@ -1,5 +1,8 @@
 name: NewRelic app ID fetcher
 description: Fetches an existing app ID from NewRelic
+branding:
+  icon: arrow-down-circle
+  color: gray-dark
 author: Zijad Aljic
 inputs:
   newrelicApiKey:
