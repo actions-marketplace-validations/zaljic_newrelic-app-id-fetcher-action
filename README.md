@@ -15,7 +15,7 @@ To use the action, the NewRelic API key must be provided as a secret in the repo
 ```yaml
 - name: Fetch NewRelic app id
   id: newrelic-app-id
-  uses: zaljic/newrelic-app-id-fetcher-action@v0.1.0
+  uses: zaljic/newrelic-app-id-fetcher-action@v1
   with:
     newrelicApiKey: ${{ secrets.NEWRELIC_API_KEY }}
     newRelicRegion: EU
@@ -46,29 +46,30 @@ This is how to use the optional input.
 
 ```yaml
 with:
-  myInput: world
-  anotherInput: optional
+  newrelicRegion: EU
 ```
 
 ### Using outputs
 
-Show people how to use your outputs in another action.
+You can use the output of this action to fetch an app GUID from the NewRelic API.
 
 ```yaml
 steps:
 - uses: actions/checkout@master
-- name: Run action
-  id: myaction
-
-  # Put your action name here
-  uses: me/myaction@master
-
-  # Put an example of your mandatory arguments here
+- name: Fetch NewRelic app id
+  id: newrelic-app-id
+  uses: zaljic/newrelic-app-id-fetcher-action@v1
   with:
-    myInput: world
+    newrelicApiKey: ${{ secrets.NEWRELIC_API_KEY }}
+    newRelicRegion: EU
+    appName: my-app-id
 
-# Put an example of using your outputs here
-- name: Check outputs
-    run: |
-    echo "Outputs - ${{ steps.myaction.outputs.myOutput }}"
+# Use the output from the `newrelic-app-id` step to fetch the GUID of the app
+- name: Fetch NewRelic app GUID
+  id: newrelic-app-guid
+  uses: zaljic/newrelic-app-guid-fetcher-action@v1
+  with:
+    newrelicApiKey: ${{ secrets.NEWRELIC_API_KEY }}
+    newRelicRegion: EU
+    appID: ${{ steps.newrelic-app-id.outputs.appID }}
 ```
