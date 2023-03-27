@@ -1,13 +1,19 @@
-name: "Go Container Action Template"
-description: "Get started with Go Container actions"
-author: "Jacob Tomlinson"
+name: NewRelic app ID fetcher
+description: Fetches an existing app ID from NewRelic
+author: Zijad Aljic
 inputs:
-  myInput:
-    description: "Input to use"
-    default: "world"
+  newrelicApiKey:
+    description: NewRelic API Key of your account
+    default: ""
+  appName:
+    description: The name of the application that is existing in NewRelic APM
+    default: ''
+  newrelicRegion:
+    description: Region the NewRelic account is running in
+    default: US
 outputs:
-  myOutput:
-    description: "Output from the action"
+  appID:
+    description: App ID output
 runs:
-  using: "docker"
-  image: "Dockerfile"
+  using: docker
+  image: Dockerfile
