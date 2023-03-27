@@ -15,7 +15,7 @@ To use the action, the NewRelic API key must be provided as a secret in the repo
 ```yaml
 - name: Fetch NewRelic app id
   id: newrelic-app-id
-  uses: zaljic/newrelic-app-id-fetcher-action@v1
+  uses: zaljic/newrelic-app-id-fetcher-action@v0.1.0
   with:
     newrelicApiKey: ${{ secrets.NEWRELIC_API_KEY }}
     newRelicRegion: EU
