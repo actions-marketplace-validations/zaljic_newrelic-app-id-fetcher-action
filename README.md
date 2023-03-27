@@ -51,25 +51,46 @@ with:
 
 ### Using outputs
 
-You can use the output of this action to fetch an app GUID from the NewRelic API.
+You can use the output of this action to fetch an app GUID from the NewRelic API and use it as input for the [newrelic/deployment-marker-action](https://github.com/newrelic/deployment-marker-action)
 
 ```yaml
-steps:
-- uses: actions/checkout@master
-- name: Fetch NewRelic app id
-  id: newrelic-app-id
-  uses: zaljic/newrelic-app-id-fetcher-action@v1
-  with:
-    newrelicApiKey: ${{ secrets.NEWRELIC_API_KEY }}
-    newRelicRegion: EU
-    appName: my-app-id
+name: newrelic
 
-# Use the output from the `newrelic-app-id` step to fetch the GUID of the app
-- name: Fetch NewRelic app GUID
-  id: newrelic-app-guid
-  uses: zaljic/newrelic-app-guid-fetcher-action@v1
-  with:
-    newrelicApiKey: ${{ secrets.NEWRELIC_API_KEY }}
-    newRelicRegion: EU
-    appID: ${{ steps.newrelic-app-id.outputs.appID }}
+on:
+  workflow_dispatch:
+
+jobs:
+  newrelic:
+    name: newrelic
+    runs-on: ubuntu-latest
+steps:
+  - uses: actions/checkout@master
+  - name: Fetch NewRelic app id
+    id: newrelic-app-id
+    uses: zaljic/newrelic-app-id-fetcher-action@v1
+    with:
+      newrelicApiKey: ${{ secrets.NEWRELIC_API_KEY }}
+      newRelicRegion: EU
+      appName: my-app-id
+
+  # Use the output from the `newrelic-app-id` step to fetch the GUID of the app
+  - name: Fetch NewRelic app GUID
+    id: newrelic-app-guid
+    uses: zaljic/newrelic-app-guid-fetcher-action@v1
+    with:
+      newrelicApiKey: ${{ secrets.NEWRELIC_API_KEY }}
+      newRelicRegion: EU
+      appID: ${{ steps.newrelic-app-id.outputs.appID }}
+
+  # Use the output from the `newrelic-app-guid` as input for the newrelic deployment-marker-action
+  - name: Create NewRelic deployment marker
+    uses: newrelic/deployment-marker-action@v2
+    with:
+      apiKey: ${{ secrets.NEW_RELIC_API_KEY }}
+      guid: ${{ steps.newrelic-app-guid.outputs.appGUID }}
+      version: ${{ github.sha }}
+      changelog: ${{ github.event.head_commit.message }}
+      description: release
+      region: EU
+      user: ${{ github.actor }}
 ```
