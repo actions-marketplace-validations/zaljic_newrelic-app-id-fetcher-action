@@ -2,43 +2,39 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 )
 
-// Here we define the struct that will be used to unmarshal the JSON response
-// from the New Relic API.
-type NewRelicApplications struct {
+// This struct is used to unmarshal the JSON returned by the New Relic API.
+type Application struct {
 	Applications []struct {
-		ID           int    `json:"id"`
-		Name         string `json:"name"`
-		Language     string `json:"language"`
-		HealthStatus string `json:"health_status"`
-		Reporting    bool   `json:"reporting"`
-		Settings     struct {
-			AppApdexThreshold        float64 `json:"app_apdex_threshold"`
-			EndUserApdexThreshold    int     `json:"end_user_apdex_threshold"`
-			EnableRealUserMonitoring bool    `json:"enable_real_user_monitoring"`
-			UseServerSideConfig      bool    `json:"use_server_side_config"`
-		} `json:"settings"`
-		Links struct {
-			ApplicationInstances []any `json:"application_instances"`
-			Servers              []any `json:"servers"`
-			ApplicationHosts     []any `json:"application_hosts"`
-		} `json:"links"`
-		LastReportedAt     time.Time `json:"last_reported_at,omitempty"`
-		ApplicationSummary struct {
-			ResponseTime  float64 `json:"response_time"`
-			Throughput    int     `json:"throughput"`
-			ErrorRate     float64 `json:"error_rate"`
-			ApdexTarget   float64 `json:"apdex_target"`
-			ApdexScore    float64 `json:"apdex_score"`
-			HostCount     int     `json:"host_count"`
-			InstanceCount int     `json:"instance_count"`
-		} `json:"application_summary,omitempty"`
+		ID                   int       `json:"id"`
+		Name                 string    `json:"name"`
+		Language             string    `json:"language"`
+		HealthStatus         string    `json:"health_status"`
+		Reporting            bool      `json:"reporting"`
+		LastReportedAt       time.Time `json:"last_reported_at"`
+		ResponseTime         float64   `json:"response_time"`
+		Throughput           float64   `json:"throughput"`
+		ErrorRate            float64   `json:"error_rate"`
+		ApdexTarget          float64   `json:"apdex_target"`
+		ApdexScore           float64   `json:"apdex_score"`
+		HostCount            int       `json:"host_count"`
+		InstanceCount        int       `json:"instance_count"`
+		AppApdexThreshold    float64   `json:"app_apdex_threshold"`
+		EndUserApdexThresh   int       `json:"end_user_apdex_threshold"`
+		RealUserMonitoring   bool      `json:"enable_real_user_monitoring"`
+		ServerSideConfig     bool      `json:"use_server_side_config"`
+		ApplicationServers   []int     `json:"application_servers"`
+		Servers              []int     `json:"servers"`
+		ApplicationHosts     []int     `json:"application_hosts"`
+		ApplicationInstances []int     `json:"application_instances"`
 	} `json:"applications"`
 	Links struct {
 		ApplicationServers              string `json:"application.servers"`
@@ -108,7 +104,10 @@ func main() {
 // returned by the New Relic API. It filters the list of applications to only
 // include applications with the name specified in the appName input
 // parameter.
-func getApplications(newrelicApiKey string, newrelicApiEndpoint string, appName string) ([]NewRelicApplications, error) {
+func getApplications(newrelicApiKey string, newrelicApiEndpoint string, appName string) (Application, error) {
+	// Create a new net/http client.
+	client := &http.Client{}
+
 	// Specify data to be sent in the HTTP request body.
 	dataString := fmt.Sprintf(`filter[name]=%s`, appName)
 	data := strings.NewReader(dataString)
@@ -117,43 +116,48 @@ func getApplications(newrelicApiKey string, newrelicApiEndpoint string, appName 
 	// specified in the newrelicApiEndpoint input parameter.
 	req, err := http.NewRequest("GET", newrelicApiEndpoint, data)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
 	// Set the Api-Key header to the value of the newrelicApiKey input parameter.
 	req.Header.Set("Api-Key", newrelicApiKey)
 
+	// Set the Content-Type header to application/x-www-form-urlencoded.
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 	// Send the HTTP request using the net/http client.
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
 	// Close the HTTP response body.
 	defer resp.Body.Close()
 
-	// Unmarshal the JSON response into a Application struct.
-	var applications []NewRelicApplications
+	// Print http status code.
+	fmt.Println(resp.StatusCode)
+
+	// Return an error if the HTTP status code is not 200.
+	if resp.StatusCode != 200 {
+		return Application{}, errors.New("HTTP status code is not 200")
+	}
+
+	// Unmarshal the HTTP response body into the Application struct.
+	var applications Application
 	err = json.NewDecoder(resp.Body).Decode(&applications)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	// Return the list of applications. If the list is empty, return an error.
-	if len(applications) > 0 {
-		return applications, nil
-	} else {
-		return nil, fmt.Errorf("no applications found with the name %s", appName)
-	}
-
+	// Return the list of applications.
+	return applications, nil
 }
 
 // This function returns the application ID of the previously filtered
 // application. It is assumed that the application list only contains one
 // application.
-func getApplicationId(applications []NewRelicApplications) int {
+func getApplicationId(applications Application) int {
 	// Return the application ID of the first application in the list of
 	// applications.
-	return applications[0].Applications[0].ID
+	return applications.Applications[0].ID
 }
